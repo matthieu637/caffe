@@ -378,7 +378,7 @@ def compact(graph, rankdir, cluster):
                         graph_type=graph.get_type(),
                         rankdir=rankdir)
     #pydot_graph.set('compound', 'true')
-    pydot_graph.set_edge_defaults(**{'tailclip':'false'});
+#    pydot_graph.set_edge_defaults(**{'tailclip':'false'});
     
     if cluster:
         c1=pydot.Subgraph('task0')
@@ -482,19 +482,21 @@ def compact(graph, rankdir, cluster):
         if n_src != None and n_src.get('label') != None and "port='pp'" in n_src.get('label'):
             sourc=sourc+':pp'
         weight=1
+        style='solid'
         if cluster:
             if ('task0' in edge.get_source() and 'task1' in edge.get_destination()) or ('task1' in edge.get_source() and 'task0' in edge.get_destination()):
                 weight=0
+                style='dashed'
         if edge.get_source() in edge_src.keys():
             pydot_graph.add_edge(
                   pydot.Edge(src=edge_src[edge.get_source()],
                   dst=desti,
-                  label=edge.get('label'), weight=weight))
+                  label=edge.get('label'), weight=weight, style=style))
         else:
             pydot_graph.add_edge(                  
                   pydot.Edge(src=sourc,
                   dst=desti,
-                  label=edge.get('label'), weight=weight))
+                  label=edge.get('label'), weight=weight, style=style))
     
     return pydot_graph
 
