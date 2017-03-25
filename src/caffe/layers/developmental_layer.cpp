@@ -13,13 +13,30 @@ template <typename Dtype>
 void DevelopmentalLayer<Dtype>::LayerSetUp(const vector<Blob<Dtype>*>& bottom,
       const vector<Blob<Dtype>*>& top) {
   NeuronLayer<Dtype>::LayerSetUp(bottom, top);
-  
+  const DevelopmentalParameter& param = this->layer_param_.developmental_param();
+  this->do_scale_ = param.scale();
+  this->probabilistic_ = param.probabilist();
   const int num_output = bottom[0]->count(1);
+  
+  CHECK_LE(param.control_size(), num_output);
+  if(param.control_size() != 0) {
+    this->control_.resize(param.control_size());
+    for(uint i=0;i<this->control_.size();i++)
+      this->control_[i] = param.control(i);
+  } else {
+    this->control_.resize(num_output);
+    for(uint i=0;i<this->control_.size();i++)
+      this->control_[i] = i;
+  }
+  
   if (this->blobs_.size() > 0) {
     LOG(INFO) << "Skipping parameter initialization";
   } else {
     this->blobs_.resize(1);
-    this->blobs_[0].reset(new Blob<Dtype>({1, num_output}));
+    vector<int> weight_shape(2);
+    weight_shape[0] = 1;
+    weight_shape[1] = this->control_.size();
+    this->blobs_[0].reset(new Blob<Dtype>(weight_shape));
     
     FillerParameter uf;
     uf.set_min(0);
@@ -48,15 +65,25 @@ void DevelopmentalLayer<Dtype>::Forward_cpu(const vector<Blob<Dtype>*>& bottom,
   unsigned int* mask = rand_vec_.mutable_cpu_data();
   const int count = bottom[0]->count();
   if (this->phase_ == TRAIN) {
+    caffe_set(count, (uint) 1, mask);
     // Create random numbers
     const Dtype* proba = this->blobs_[0]->cpu_data();
-    caffe_rng_bernoulli(count, proba, mask);
-    for (int i = 0; i < count; ++i) {
-      Dtype scale_ = 1. / proba[i];
-      top_data[i] = bottom_data[i] * mask[i] * scale_;
+    const uint* c = this->control_.data(); //control size == proba size != count == mask size 
+    if(this->probabilistic_)
+      caffe_rng_bernoulli((int)this->control_.size(), proba, mask, c);
+    else {
+      for (int i = 0; i < this->control_.size(); ++i)
+        mask[c[i]] = proba[i] >= 0;
     }
+    uint y=0;
+    for (int i = 0; i < count; ++i) {
+      Dtype scale_ = 1.;
+      if(this->do_scale_ && c[y] == i)
+        scale_ = 1. / proba[y++];
+      top_data[i] = bottom_data[i] * mask[i] * scale_;
+    } 
   } else {
-    caffe_copy(bottom[0]->count(), bottom_data, top_data);
+    caffe_copy(count, bottom_data, top_data);
   }
 }
 
@@ -70,9 +97,13 @@ void DevelopmentalLayer<Dtype>::Backward_cpu(const vector<Blob<Dtype>*>& top,
     if (this->phase_ == TRAIN) {
       const unsigned int* mask = rand_vec_.cpu_data();
       const Dtype* proba = this->blobs_[0]->cpu_data();
+      const uint* c = this->control_.data();
       const int count = bottom[0]->count();
+      uint y=0;
       for (int i = 0; i < count; ++i) {
-        Dtype scale_ = 1. / proba[i];
+        Dtype scale_ = 1.;
+        if(this->do_scale_ && c[y] == i)
+          scale_ = 1. / proba[y++];
         bottom_diff[i] = top_diff[i] * mask[i] * scale_;
       }
     } else {

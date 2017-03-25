@@ -71,6 +71,9 @@ class DevelopmentalLayer : public NeuronLayer<Dtype> {
 
   /// when divided by UINT_MAX, the randomly generated values @f$u\sim U(0,1)@f$
   Blob<unsigned int> rand_vec_;
+  std::vector<unsigned int> control_;
+  bool do_scale_;
+  bool probabilistic_;
 };
 
 }  // namespace caffe

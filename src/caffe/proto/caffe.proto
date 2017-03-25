@@ -370,6 +370,7 @@ message LayerParameter {
   optional CropParameter crop_param = 144;
   optional DataParameter data_param = 107;
   optional DropoutParameter dropout_param = 108;
+  optional DevelopmentalParameter developmental_param = 208;
   optional DummyDataParameter dummy_data_param = 109;
   optional EltwiseParameter eltwise_param = 110;
   optional ELUParameter elu_param = 140;
@@ -664,6 +665,15 @@ message DataParameter {
 
 message DropoutParameter {
   optional float dropout_ratio = 1 [default = 0.5]; // dropout ratio
+}
+
+message DevelopmentalParameter {
+  // apply scale factor for activated outputs
+  optional bool scale = 1 [default = true];
+  // use parameters as a probability for activation
+  optional bool probabilist = 2 [default = true];
+  // which index to control
+  repeated uint32 control = 3;
 }
 
 // DummyDataLayer fills any number of arbitrarily shaped blobs with random
