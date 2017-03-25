@@ -232,10 +232,12 @@ def get_pydot_graph(caffe_net, rankdir, label_edges=True, phase=None):
     actions_pattern_d = re.compile('.*actions[.].*')
     states_actions_pattern = re.compile('.*states_actions.*')
     developmental=False
+    containsSeveralStates=False
     for node in pydot_nodes.values():
         if states_pattern_d.match(node.get_name()) or actions_pattern_d.match(node.get_name()):
             developmental=True
-            break
+        if states_pattern_d.match(node.get_name()):
+            containsSeveralStates=True
     # Now, add the nodes and edges to the graph.
     for node in pydot_nodes.values():
         if dummy_pattern.match(node.get_name()) or memory_pattern.match(node.get_name()) or node.get_name() == 'loss':
@@ -243,7 +245,7 @@ def get_pydot_graph(caffe_net, rankdir, label_edges=True, phase=None):
         if node.get_shape() == 'octagon' and not states_pattern.match(node.get_name()) and not actions_pattern.match(node.get_name()):
             ignored_blob.append(node.get_name())
             continue
-        if developmental and (node.get_name() == "actions" or node.get_name() == "states" or slice_pattern.match(node.get_name()) ):
+        if developmental and (node.get_name() == "actions" or (node.get_name() == "states" and containsSeveralStates) or slice_pattern.match(node.get_name()) ):
             ignored_blob.append(node.get_name())
             continue
         if developmental and actions_pattern_d.match(node.get_name()) and not is_labeled(pydot_edges, pydot_nodes, node.get_name()):
@@ -487,6 +489,8 @@ def compact(graph, rankdir, cluster):
             if ('task0' in edge.get_source() and 'task1' in edge.get_destination()) or ('task1' in edge.get_source() and 'task0' in edge.get_destination()):
                 weight=0
                 style='dashed'
+            elif (edge.get_source()=="states" and 'task1' in edge.get_destination()):
+                weight=0
         if edge.get_source() in edge_src.keys():
             pydot_graph.add_edge(
                   pydot.Edge(src=edge_src[edge.get_source()],
