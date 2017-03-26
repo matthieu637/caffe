@@ -64,16 +64,20 @@ void DevelopmentalLayer<Dtype>::Forward_cpu(const vector<Blob<Dtype>*>& bottom,
   Dtype* top_data = top[0]->mutable_cpu_data();
   unsigned int* mask = rand_vec_.mutable_cpu_data();
   const int count = bottom[0]->count();
+  const int num_output = bottom[0]->count(1);
+  const int batch = count/num_output;
   if (this->phase_ == TRAIN) {
     caffe_set(count, (uint) 1, mask);
     // Create random numbers
     const Dtype* proba = this->blobs_[0]->cpu_data();
     const uint* c = this->control_.data(); //control size == proba size != count == mask size 
     if(this->probabilistic_)
-      caffe_rng_bernoulli((int)this->control_.size(), proba, mask, c);
+      for(int j=0;j < batch;++j)
+        caffe_rng_bernoulli((int)this->control_.size(), proba, mask, c, j*num_output);
     else {
-      for (int i = 0; i < this->control_.size(); ++i)
-        mask[c[i]] = proba[i] >= 0;
+      for(int j=0;j < batch;++j)
+        for (int i = 0; i < this->control_.size(); ++i)
+          mask[j*num_output+c[i]] = proba[i] >= 0;
     }
     uint y=0;
     for (int i = 0; i < count; ++i) {
@@ -99,11 +103,16 @@ void DevelopmentalLayer<Dtype>::Backward_cpu(const vector<Blob<Dtype>*>& top,
       const Dtype* proba = this->blobs_[0]->cpu_data();
       const uint* c = this->control_.data();
       const int count = bottom[0]->count();
+      const int num_output = bottom[0]->count(1);
+      const int batch = count/num_output;
       uint y=0;
       for (int i = 0; i < count; ++i) {
         Dtype scale_ = 1.;
-        if(this->do_scale_ && c[y] == i)
+        if(this->do_scale_ && c[y] == (i%batch)){
           scale_ = 1. / proba[y++];
+          if(y >= num_output)
+            y=0;
+        }
         bottom_diff[i] = top_diff[i] * mask[i] * scale_;
       }
     } else {

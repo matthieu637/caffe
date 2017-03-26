@@ -321,7 +321,7 @@ void caffe_rng_bernoulli(const int n, const Dtype p, unsigned int* r) {
 }
 
 template <typename Dtype>
-void caffe_rng_bernoulli(const int n, const Dtype* p, unsigned int* r, const unsigned int* c) {
+void caffe_rng_bernoulli(const int n, const Dtype* p, unsigned int* r, const unsigned int* c, const int m) {
   CHECK_GE(n, 0);
   CHECK(p);
   CHECK(r);
@@ -331,15 +331,15 @@ void caffe_rng_bernoulli(const int n, const Dtype* p, unsigned int* r, const uns
     boost::bernoulli_distribution<Dtype> random_distribution(p[i]);
     boost::variate_generator<caffe::rng_t*, boost::bernoulli_distribution<Dtype> >
       variate_generator(caffe_rng(), random_distribution);
-    r[c[i]] = static_cast<unsigned int>(variate_generator());
+    r[m + c[i]] = static_cast<unsigned int>(variate_generator());
   }
 }
 
 template
-void caffe_rng_bernoulli<float>(const int n, const float* p, unsigned int* r, const unsigned int* c);
+void caffe_rng_bernoulli<float>(const int n, const float* p, unsigned int* r, const unsigned int* c, const int m);
 
 template
-void caffe_rng_bernoulli<double>(const int n, const double* p, unsigned int* r, const unsigned int* c);
+void caffe_rng_bernoulli<double>(const int n, const double* p, unsigned int* r, const unsigned int* c, const int m);
 
 template
 void caffe_rng_bernoulli<double>(const int n, const double p, unsigned int* r);
