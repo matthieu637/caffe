@@ -69,7 +69,13 @@ void DevelopmentalLayer<Dtype>::Forward_cpu(const vector<Blob<Dtype>*>& bottom,
   if (this->phase_ == TRAIN) {
     caffe_set(count, (uint) 1, mask);
     // Create random numbers
-    const Dtype* proba = this->blobs_[0]->cpu_data();
+    Dtype* proba = this->blobs_[0]->mutable_cpu_data();
+    for(uint i=0;i<this->blobs_[0]->count();i++)
+      if(proba[i] < 0.)
+        proba[i] = 0.;
+      else if(proba[i] > 1.)
+        proba[i] = 1.;
+    
     const uint* c = this->control_.data(); //control size == proba size != count == mask size 
     if(this->probabilistic_)
       for(int j=0;j < batch;++j)
