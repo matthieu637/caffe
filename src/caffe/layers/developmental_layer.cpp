@@ -75,8 +75,9 @@ void DevelopmentalLayer<Dtype>::Forward_cpu(const vector<Blob<Dtype>*>& bottom,
         proba[i] = 0.;
       else if(proba[i] > 1.)
         proba[i] = 1.;
-    
-    const uint* c = this->control_.data(); //control size == proba size != count == mask size 
+
+    //control size == proba size != count == mask size != num_output
+    const uint* c = this->control_.data(); 
     if(this->probabilistic_)
       for(int j=0;j < batch;++j)
         caffe_rng_bernoulli((int)this->control_.size(), proba, mask, c, j*num_output);
@@ -88,9 +89,9 @@ void DevelopmentalLayer<Dtype>::Forward_cpu(const vector<Blob<Dtype>*>& bottom,
     uint y=0;
     for (int i = 0; i < count; ++i) {
       Dtype scale_ = 1.;
-      if(this->do_scale_ && c[y] == (i%batch)){
+      if(this->do_scale_ && c[y] == (i%num_output)){
         scale_ = 1. / proba[y++];
-        if(y >= num_output)
+        if(y >= this->control_.size())
           y=0;
       }
       top_data[i] = bottom_data[i] * mask[i] * scale_;
@@ -113,13 +114,12 @@ void DevelopmentalLayer<Dtype>::Backward_cpu(const vector<Blob<Dtype>*>& top,
       const uint* c = this->control_.data();
       const int count = bottom[0]->count();
       const int num_output = bottom[0]->count(1);
-      const int batch = count/num_output;
       uint y=0;
       for (int i = 0; i < count; ++i) {
         Dtype scale_ = 1.;
-        if(this->do_scale_ && c[y] == (i%batch)){
+        if(this->do_scale_ && c[y] == (i%num_output)){
           scale_ = 1. / proba[y++];
-          if(y >= num_output)
+          if(y >= this->control_.size())
             y=0;
         }
         bottom_diff[i] = top_diff[i] * mask[i] * scale_;
