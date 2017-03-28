@@ -88,8 +88,11 @@ void DevelopmentalLayer<Dtype>::Forward_cpu(const vector<Blob<Dtype>*>& bottom,
     uint y=0;
     for (int i = 0; i < count; ++i) {
       Dtype scale_ = 1.;
-      if(this->do_scale_ && c[y] == i)
+      if(this->do_scale_ && c[y] == (i%batch)){
         scale_ = 1. / proba[y++];
+        if(y >= num_output)
+          y=0;
+      }
       top_data[i] = bottom_data[i] * mask[i] * scale_;
     } 
   } else {
