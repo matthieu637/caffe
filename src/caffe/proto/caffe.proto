@@ -671,7 +671,7 @@ message DevelopmentalParameter {
   // apply scale factor for activated outputs
   optional bool scale = 1 [default = true];
   // use parameters as a probability for activation
-  optional bool probabilist = 2 [default = true];
+  optional uint32 probabilist = 2 [default = 0];
   // which index to control
   repeated uint32 control = 3;
 }

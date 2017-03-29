@@ -54,7 +54,8 @@ void DevelopmentalLayer<Dtype>::Reshape(const vector<Blob<Dtype>*>& bottom,
   NeuronLayer<Dtype>::Reshape(bottom, top);
   // Set up the cache for random number generation
   // ReshapeLike does not work because rand_vec_ is of Dtype uint
-  rand_vec_.Reshape(bottom[0]->shape());
+  if(this->probabilistic_ <= 2)
+    rand_vec_.Reshape(bottom[0]->shape());
 }
 
 template <typename Dtype>
@@ -78,24 +79,42 @@ void DevelopmentalLayer<Dtype>::Forward_cpu(const vector<Blob<Dtype>*>& bottom,
 
     //control size == proba size != count == mask size != num_output
     const uint* c = this->control_.data(); 
-    if(this->probabilistic_)
+    if(this->probabilistic_ == 0)
       for(int j=0;j < batch;++j)
         caffe_rng_bernoulli((int)this->control_.size(), proba, mask, c, j*num_output);
-    else {
+    else if(this->probabilistic_ == 1) {
       for(int j=0;j < batch;++j)
         for (int i = 0; i < this->control_.size(); ++i)
           mask[j*num_output+c[i]] = proba[i] >= 0;
-    }
-    uint y=0;
-    for (int i = 0; i < count; ++i) {
-      Dtype scale_ = 1.;
-      if(this->do_scale_ && c[y] == (i%num_output) && proba[y] != 0.){
-        scale_ = 1. / proba[y++];
-        if(y >= this->control_.size())
-          y=0;
-      }
-      top_data[i] = bottom_data[i] * mask[i] * scale_;
+    } else if(this->probabilistic_ == 2) {
+      for(int j=0;j < batch;++j)
+        for (int i = 0; i < this->control_.size(); ++i){
+          uint index = j*num_output+c[i];
+          mask[index] = std::fabs(proba[i]) >= std::fabs(bottom_data[index]);
+        }
     } 
+    
+    if(this->probabilistic_ <= 2){
+      uint y=0;
+      for (int i = 0; i < count; ++i) {
+        Dtype scale_ = 1.;
+        if(this->do_scale_ && c[y] == (i%num_output) && proba[y] != 0.){
+          scale_ = 1. / proba[y++];
+          if(y >= this->control_.size())
+            y=0;
+        }
+        top_data[i] = bottom_data[i] * mask[i] * scale_;
+      } 
+    } else {
+      for(int j=0;j < batch;++j)
+        for (int i = 0; i < this->control_.size(); ++i){
+          uint index = j*num_output+c[i];
+          if(std::fabs(proba[i]) < std::fabs(bottom_data[index]) || proba[i] == 0.)
+            top_data[index] = proba[i];
+          else
+            top_data[index] = bottom_data[i];
+        }
+    }
   } else {
     caffe_copy(count, bottom_data, top_data);
   }

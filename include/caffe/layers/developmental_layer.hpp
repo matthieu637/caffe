@@ -73,7 +73,7 @@ class DevelopmentalLayer : public NeuronLayer<Dtype> {
   Blob<unsigned int> rand_vec_;
   std::vector<unsigned int> control_;
   bool do_scale_;
-  bool probabilistic_;
+  uint probabilistic_;
 };
 
 }  // namespace caffe
