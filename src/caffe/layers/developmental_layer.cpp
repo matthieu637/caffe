@@ -89,7 +89,7 @@ void DevelopmentalLayer<Dtype>::Forward_cpu(const vector<Blob<Dtype>*>& bottom,
     uint y=0;
     for (int i = 0; i < count; ++i) {
       Dtype scale_ = 1.;
-      if(this->do_scale_ && c[y] == (i%num_output)){
+      if(this->do_scale_ && c[y] == (i%num_output) && proba[y] != 0.){
         scale_ = 1. / proba[y++];
         if(y >= this->control_.size())
           y=0;
@@ -117,7 +117,7 @@ void DevelopmentalLayer<Dtype>::Backward_cpu(const vector<Blob<Dtype>*>& top,
       uint y=0;
       for (int i = 0; i < count; ++i) {
         Dtype scale_ = 1.;
-        if(this->do_scale_ && c[y] == (i%num_output)){
+        if(this->do_scale_ && c[y] == (i%num_output) && proba[y] != 0.){
           scale_ = 1. / proba[y++];
           if(y >= this->control_.size())
             y=0;
