@@ -75,7 +75,7 @@ void DevelopmentalLayer<Dtype>::Forward_cpu(const vector<Blob<Dtype>*>& bottom,
       else if(proba[i] > 1.)
         proba[i] = 1.;
     
-    unsigned int* mask = nullptr;
+    unsigned int* mask;
     if(this->probabilistic_ <= 2){
       mask = rand_vec_.mutable_cpu_data();
       caffe_set(count, (uint) 1, mask);
@@ -132,7 +132,7 @@ void DevelopmentalLayer<Dtype>::Backward_cpu(const vector<Blob<Dtype>*>& top,
     const Dtype* top_diff = top[0]->cpu_diff();
     Dtype* bottom_diff = bottom[0]->mutable_cpu_diff();
     if (this->phase_ == TRAIN) {
-      const unsigned int* mask = nullptr;
+      const unsigned int* mask;
       if(this->probabilistic_ <= 2)
         mask = rand_vec_.cpu_data();
       const Dtype* proba = this->blobs_[0]->cpu_data();
