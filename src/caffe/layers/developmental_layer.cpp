@@ -63,12 +63,10 @@ void DevelopmentalLayer<Dtype>::Forward_cpu(const vector<Blob<Dtype>*>& bottom,
     const vector<Blob<Dtype>*>& top) {
   const Dtype* bottom_data = bottom[0]->cpu_data();
   Dtype* top_data = top[0]->mutable_cpu_data();
-  unsigned int* mask = rand_vec_.mutable_cpu_data();
   const int count = bottom[0]->count();
   const int num_output = bottom[0]->count(1);
   const int batch = count/num_output;
   if (this->phase_ == TRAIN) {
-    caffe_set(count, (uint) 1, mask);
     // Create random numbers
     Dtype* proba = this->blobs_[0]->mutable_cpu_data();
     for(uint i=0;i<this->blobs_[0]->count();i++)
@@ -76,6 +74,12 @@ void DevelopmentalLayer<Dtype>::Forward_cpu(const vector<Blob<Dtype>*>& bottom,
         proba[i] = 0.;
       else if(proba[i] > 1.)
         proba[i] = 1.;
+    
+    unsigned int* mask = nullptr;
+    if(this->probabilistic_ <= 2){
+      mask = rand_vec_.mutable_cpu_data();
+      caffe_set(count, (uint) 1, mask);
+    }
 
     //control size == proba size != count == mask size != num_output
     const uint* c = this->control_.data(); 
@@ -92,7 +96,7 @@ void DevelopmentalLayer<Dtype>::Forward_cpu(const vector<Blob<Dtype>*>& bottom,
           uint index = j*num_output+c[i];
           mask[index] = std::fabs(proba[i]) >= std::fabs(bottom_data[index]);
         }
-    } 
+    }
     
     if(this->probabilistic_ <= 2){
       uint y=0;
@@ -128,20 +132,34 @@ void DevelopmentalLayer<Dtype>::Backward_cpu(const vector<Blob<Dtype>*>& top,
     const Dtype* top_diff = top[0]->cpu_diff();
     Dtype* bottom_diff = bottom[0]->mutable_cpu_diff();
     if (this->phase_ == TRAIN) {
-      const unsigned int* mask = rand_vec_.cpu_data();
+      const unsigned int* mask = nullptr;
+      if(this->probabilistic_ <= 2)
+        mask = rand_vec_.cpu_data();
       const Dtype* proba = this->blobs_[0]->cpu_data();
       const uint* c = this->control_.data();
       const int count = bottom[0]->count();
       const int num_output = bottom[0]->count(1);
       uint y=0;
-      for (int i = 0; i < count; ++i) {
-        Dtype scale_ = 1.;
-        if(this->do_scale_ && c[y] == (i%num_output) && proba[y] != 0.){
-          scale_ = 1. / proba[y++];
-          if(y >= this->control_.size())
-            y=0;
+      if(this->probabilistic_ <=2)
+        for (int i = 0; i < count; ++i) {
+          Dtype scale_ = 1.;
+          if(this->do_scale_ && c[y] == (i%num_output) && proba[y] != 0.){
+            scale_ = 1. / proba[y++];
+            if(y >= this->control_.size())
+              y=0;
+          }
+          bottom_diff[i] = top_diff[i] * mask[i] * scale_;
         }
-        bottom_diff[i] = top_diff[i] * mask[i] * scale_;
+      else{
+        const Dtype* bottom_data = bottom[0]->cpu_data();
+        for (int i = 0; i < count; ++i) {
+          if(c[y] == (i%num_output) && proba[y] != 0. && std::fabs(proba[y]) < std::fabs(bottom_data[i])){
+            bottom_diff[i] = 0.;
+            if(y >= this->control_.size())
+              y=0;
+          } else 
+            bottom_diff[i] = top_diff[i];
+        }
       }
     } else {
       caffe_copy(top[0]->count(), top_diff, bottom_diff);
