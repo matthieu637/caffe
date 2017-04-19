@@ -674,6 +674,8 @@ message DevelopmentalParameter {
   optional uint32 probabilist = 2 [default = 0];
   // which index to control
   repeated uint32 control = 3;
+  // compute diff of parameters
+  optional bool diff_compute = 4 [default = false];
 }
 
 // DummyDataLayer fills any number of arbitrarily shaped blobs with random

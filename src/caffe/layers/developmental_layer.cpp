@@ -45,7 +45,10 @@ void DevelopmentalLayer<Dtype>::LayerSetUp(const vector<Blob<Dtype>*>& bottom,
     // fill the weights
     shared_ptr<Filler<Dtype> > weight_filler(GetFiller<Dtype>(uf));
     weight_filler->Fill(this->blobs_[0].get());
-  }  // parameter initialization
+  } // parameter initialization
+  
+  if(param.diff_compute())
+    this->param_propagate_down_.resize(this->blobs_.size(), true);
 }
 
 template <typename Dtype>
@@ -66,6 +69,7 @@ void DevelopmentalLayer<Dtype>::Forward_cpu(const vector<Blob<Dtype>*>& bottom,
   const int count = bottom[0]->count();
   const int num_output = bottom[0]->count(1);
   const int batch = count/num_output;
+//   std::cout << " forward " <<std::endl;
   if (this->phase_ == TRAIN) {
     // Create random numbers
     Dtype* proba = this->blobs_[0]->mutable_cpu_data();
@@ -128,6 +132,29 @@ template <typename Dtype>
 void DevelopmentalLayer<Dtype>::Backward_cpu(const vector<Blob<Dtype>*>& top,
     const vector<bool>& propagate_down,
     const vector<Blob<Dtype>*>& bottom) {
+  
+  if (this->param_propagate_down_.size() > 0 && this->param_propagate_down_[0]) {
+    const Dtype* top_diff = top[0]->cpu_diff();
+    const Dtype* bottom_data = bottom[0]->cpu_data();
+//     caffe_cpu_gemm<Dtype>(CblasTrans, CblasNoTrans,
+//                           N_, K_, M_,
+//                           (Dtype)1., top_diff, bottom_data,
+//                           (Dtype)1., this->blobs_[0]->mutable_cpu_diff());
+    Dtype* param_diff = this->blobs_[0]->mutable_cpu_diff();
+    const int count = bottom[0]->count();
+    const int num_output = bottom[0]->count(1);
+    const int batch = count/num_output;
+    
+    for (int i = 0; i < this->control_.size(); ++i) {
+      double sum = 0.f;
+      for(int j=0;j < batch;++j){
+        uint index = j*num_output+this->control_[i];
+        sum += top_diff[index] * bottom_data[index];
+      }
+      
+      param_diff[i] = sum;
+    }
+  }
   if (propagate_down[0]) {
     const Dtype* top_diff = top[0]->cpu_diff();
     Dtype* bottom_diff = bottom[0]->mutable_cpu_diff();
