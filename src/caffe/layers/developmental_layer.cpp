@@ -73,11 +73,17 @@ void DevelopmentalLayer<Dtype>::Forward_cpu(const vector<Blob<Dtype>*>& bottom,
   if (this->phase_ == TRAIN) {
     // Create random numbers
     Dtype* proba = this->blobs_[0]->mutable_cpu_data();
-    for(uint i=0;i<this->blobs_[0]->count();i++)
-      if(proba[i] < 0.)
-        proba[i] = 0.;
-      else if(proba[i] > 1.)
-        proba[i] = 1.;
+    
+    if(this->probabilistic_ <= 1){
+      for(uint i=0;i<this->blobs_[0]->count();i++)
+        if(proba[i] < 0.)
+          proba[i] = 0.;
+        else if(proba[i] > 1.)
+          proba[i] = 1.;
+    } else // 2 and 3 use fabs
+      for(uint i=0;i<this->blobs_[0]->count();i++)
+        if(proba[i] < 0.)
+          proba[i] = 0.;
     
     unsigned int* mask;
     if(this->probabilistic_ <= 2){
@@ -93,7 +99,9 @@ void DevelopmentalLayer<Dtype>::Forward_cpu(const vector<Blob<Dtype>*>& bottom,
     else if(this->probabilistic_ == 1) {
       for(int j=0;j < batch;++j)
         for (int i = 0; i < this->control_.size(); ++i)
-          mask[j*num_output+c[i]] = proba[i] >= 0;
+          mask[j*num_output+c[i]] = proba[i] >= 0.5; 
+        //0.5 unless probabilistic_ == 1
+        //do nothing because proba[i] is in [0;1]
     } else if(this->probabilistic_ == 2) {
       for(int j=0;j < batch;++j)
         for (int i = 0; i < this->control_.size(); ++i){
