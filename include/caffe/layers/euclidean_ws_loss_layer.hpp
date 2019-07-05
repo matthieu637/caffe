@@ -1,3 +1,4 @@
+#ifdef CPU_ONLY
 #ifndef CAFFE_EUCLIDEAN_WS_LOSS_LAYER_HPP_
 #define CAFFE_EUCLIDEAN_WS_LOSS_LAYER_HPP_
 
@@ -108,3 +109,4 @@ class EuclideanWSLossLayer : public LossLayer<Dtype> {
 }  // namespace caffe
 
 #endif  // CAFFE_EUCLIDEAN_LOSS_LAYER_HPP_
+#endif

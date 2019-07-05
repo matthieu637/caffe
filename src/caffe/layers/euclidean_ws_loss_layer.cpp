@@ -1,3 +1,4 @@
+#ifdef CPU_ONLY
 #include <vector>
 
 #include "caffe/layers/euclidean_ws_loss_layer.hpp"
@@ -61,3 +62,4 @@ INSTANTIATE_CLASS(EuclideanWSLossLayer);
 REGISTER_LAYER_CLASS(EuclideanWSLoss);
 
 }  // namespace caffe
+#endif

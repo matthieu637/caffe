@@ -1,5 +1,7 @@
 // TODO (sergeyk): effect should not be dependent on phase. wasted memcpy.
 
+#ifdef CPU_ONLY
+
 #include <vector>
 #include <boost/random.hpp>
 
@@ -211,3 +213,5 @@ INSTANTIATE_CLASS(DevelopmentalLayer);
 REGISTER_LAYER_CLASS(Developmental);
 
 }  // namespace caffe
+
+#endif

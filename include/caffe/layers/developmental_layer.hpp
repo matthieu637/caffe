@@ -1,6 +1,6 @@
-
-#ifndef CAFFE_DROPOUT_LAYER_HPP_
-#define CAFFE_DROPOUT_LAYER_HPP_
+#ifdef GPU_ONLY
+#ifndef CAFFE_DEVELOPMENTAL_LAYER_HPP_
+#define CAFFE_DEVELOPMENTAL_LAYER_HPP_
 
 #include <vector>
 
@@ -79,4 +79,4 @@ class DevelopmentalLayer : public NeuronLayer<Dtype> {
 }  // namespace caffe
 
 #endif  // CAFFE_DROPOUT_LAYER_HPP_
-
+#endif
